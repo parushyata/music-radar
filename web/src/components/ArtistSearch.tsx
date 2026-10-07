@@ -14,7 +14,13 @@ function useDebounced<T>(value: T, ms: number): T {
 }
 
 /** Search box with MusicBrainz suggestions; picking one follows the artist. */
-export function ArtistSearch({ followedMbids }: { followedMbids: Set<string> }) {
+export function ArtistSearch({
+  followedMbids,
+  onAddManually,
+}: {
+  followedMbids: Set<string>;
+  onAddManually: (name: string) => void;
+}) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
   const [open, setOpen] = useState(false);
@@ -40,6 +46,13 @@ export function ArtistSearch({ followedMbids }: { followedMbids: Set<string> }) 
     setText('');
     setOpen(false);
     follow.mutate(c);
+  };
+
+  const addManually = () => {
+    const name = text.trim();
+    setText('');
+    setOpen(false);
+    onAddManually(name);
   };
 
   const pending = text.trim() !== q || search.isFetching;
@@ -94,6 +107,17 @@ export function ArtistSearch({ followedMbids }: { followedMbids: Set<string> }) 
                 </span>
               </li>
             ))
+          )}
+          {!pending && (
+            <li
+              className="s-manual"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                addManually();
+              }}
+            >
+              <span className="linkish">Not listed? Add “{text.trim()}” manually</span>
+            </li>
           )}
         </ul>
       )}

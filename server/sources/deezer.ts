@@ -1,7 +1,7 @@
 // Deezer public API (no key): artist photos and full discography with release dates.
 import { fetchJSON } from '../lib/http.ts';
 import { norm } from '../lib/text.ts';
-import type { Artist } from '../../shared/types.ts';
+import type { FollowedArtist } from '../../shared/types.ts';
 import type { RawRelease } from './types.ts';
 
 interface DeezerArtist {
@@ -42,7 +42,7 @@ export async function findDeezerArtist(name: string, knownIds: string[]): Promis
   return list.filter((x) => norm(x.name) === norm(name)).sort(byFans)[0] ?? null;
 }
 
-export async function deezerReleases(artist: Artist): Promise<RawRelease[]> {
+export async function deezerReleases(artist: FollowedArtist): Promise<RawRelease[]> {
   if (!artist.deezerId) return [];
   const data = await fetchJSON<{ data?: DeezerAlbum[]; error?: { message?: string } }>(
     `https://api.deezer.com/artist/${artist.deezerId}/albums?limit=100`,
