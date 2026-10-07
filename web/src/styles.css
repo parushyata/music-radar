@@ -80,6 +80,7 @@ code { font-size: .9em; background: var(--surface-2); padding: 1px 5px; border-r
 .suggestions .s-name { font-weight: 600; }
 .suggestions .s-meta { color: var(--muted); font-size: 13px; }
 .suggestions .s-msg { color: var(--muted); cursor: default; }
+.suggestions .s-manual { border-top: 1px solid var(--border); border-radius: 0 0 9px 9px; }
 
 .banner {
   background: var(--accent-soft); border-radius: var(--radius); padding: 10px 16px; margin-bottom: 14px; font-size: 14px;

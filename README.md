@@ -38,7 +38,7 @@ Paste it in **⚙ Settings**, or set `TICKETMASTER_API_KEY` in the environment, 
 shared/types.ts          Types shared by server and web
 server/
   index.ts               Hono routes (/api/*) + static hosting in production
-  db.ts                  SQLite schema and repositories (artists, settings, reports)
+  db.ts                  SQLite schema and repositories (artists, manual_artists, settings, reports)
   artists.ts             Resolve an artist across MusicBrainz / Deezer / Apple Music
   report.ts              Query every source, merge duplicates, cache for 6 hours
   config.ts              API keys (env vars or settings table)
@@ -49,7 +49,7 @@ web/
     App.tsx              Layout, tabs, dialogs
     api.ts               Typed fetch client
     hooks.ts             TanStack Query hooks
-    views/               Overview, Releases, Concerts, News tabs
+    views/               Overview, Releases, Concerts, News, Manual tabs
     components/          Cards, lists, dialogs, search
     lib/                 Date formatting, report summaries
 ```
@@ -62,9 +62,18 @@ web/
 | GET | `/api/artists` | Followed artists with cached reports |
 | POST | `/api/artists` `{ mbid }` | Follow an artist |
 | POST | `/api/artists/bulk` `{ names }` | Follow many by name (confident matches only) |
-| DELETE | `/api/artists/:id` | Unfollow |
+| POST | `/api/manual-artists` `{ name, disambiguation?, links }` | Add an artist MusicBrainz doesn't list |
+| PUT | `/api/manual-artists/:id` `{ name, disambiguation?, links }` | Edit a manual artist (re-checks Deezer / Apple Music) |
+| DELETE | `/api/artists/:id` | Unfollow (MusicBrainz or manual) |
 | GET | `/api/artists/:id/report[?refresh=1]` | Releases, events, news (cached 6 h) |
 | GET/POST | `/api/config` | Which API keys are set / save keys |
+
+## Manual artists
+Artists that MusicBrainz doesn't list can be added in the **Manual** tab with a name and links.
+Open one and click **Edit** to change its name, note or links.
+They live in their own tables (`manual_artists`, `manual_reports`), and the `artists` table keeps an mbid on every row.
+Their releases come from Deezer and Apple Music, matched by name unless you paste their Deezer or Apple Music link.
+Concerts and news are looked up by name, as for every other artist, and appear in the Releases, Concerts and News tabs.
 
 ## Sources the app does not query
 - **Spotify**: its API has no upcoming-release data and requires OAuth, so artists only get a link.

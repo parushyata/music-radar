@@ -1,13 +1,13 @@
 // Google News RSS (no key): headlines about new albums, tours and announcements.
 import { fetchText } from '../lib/http.ts';
 import { decodeEntities, norm, stripAccents } from '../lib/text.ts';
-import type { Artist, NewsItem } from '../../shared/types.ts';
+import type { FollowedArtist, NewsItem } from '../../shared/types.ts';
 
 // Headlines must look music-related (skips gossip that merely mentions the artist).
 const MUSIC_WORDS =
   /\b(albums?|LP|EP|singles?|songs?|tracks?|tours?|touring|concerts?|gigs?|shows?|festivals?|tickets?|presale|tour dates|headlin\w*|lineup|line-up|releases?|released|new music|music video|recording|studio|perform\w*|setlist|residency|live|reunion|remix|deluxe|Grammys?)\b/i;
 
-export async function newsFor(artist: Artist): Promise<NewsItem[]> {
+export async function newsFor(artist: FollowedArtist): Promise<NewsItem[]> {
   const q = `"${artist.name}" (album OR tour OR concert OR single OR announces OR festival) when:60d`;
   const xml = await fetchText(
     `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`,

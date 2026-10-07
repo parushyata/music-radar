@@ -2,7 +2,7 @@
 // https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/
 import { fetchJSON } from '../lib/http.ts';
 import { norm } from '../lib/text.ts';
-import type { Artist } from '../../shared/types.ts';
+import type { FollowedArtist } from '../../shared/types.ts';
 import type { RawEvent } from './types.ts';
 
 const BASE = 'https://app.ticketmaster.com/discovery/v2';
@@ -22,7 +22,7 @@ interface TmEvent {
   };
 }
 
-export async function ticketmasterEvents(artist: Artist, apiKey: string): Promise<RawEvent[]> {
+export async function ticketmasterEvents(artist: FollowedArtist, apiKey: string): Promise<RawEvent[]> {
   const attractions = await fetchJSON<{ _embedded?: { attractions?: TmAttraction[] } }>(
     `${BASE}/attractions.json?apikey=${apiKey}&keyword=${encodeURIComponent(artist.name)}&classificationName=music&size=20`,
   );

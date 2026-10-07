@@ -3,6 +3,7 @@ import { api } from '../api.ts';
 import { queryKeys, type ArtistState } from '../hooks.ts';
 import { summarize } from '../lib/summary.ts';
 import { Avatar, ExternalLink, Modal } from './ui.tsx';
+import type { ManualArtist } from '../../../shared/types.ts';
 import { ReleaseGrid } from './ReleaseCard.tsx';
 import { EventList } from './EventList.tsx';
 import { NewsList } from './NewsList.tsx';
@@ -12,9 +13,10 @@ interface Props {
   hasEventSource: boolean;
   onClose: () => void;
   onRefresh: (id: string) => void;
+  onEdit: (artist: ManualArtist) => void;
 }
 
-export function ArtistDialog({ state, hasEventSource, onClose, onRefresh }: Props) {
+export function ArtistDialog({ state, hasEventSource, onClose, onRefresh, onEdit }: Props) {
   const qc = useQueryClient();
   const unfollow = useMutation({
     mutationFn: api.unfollow,
@@ -27,14 +29,14 @@ export function ArtistDialog({ state, hasEventSource, onClose, onRefresh }: Prop
 
   return (
     <Modal open={!!state} onClose={onClose} wide>
-      {state && <Body state={state} hasEventSource={hasEventSource} onClose={onClose} onRefresh={onRefresh} onRemove={() => {
+      {state && <Body state={state} hasEventSource={hasEventSource} onClose={onClose} onRefresh={onRefresh} onEdit={onEdit} onRemove={() => {
         if (confirm(`Stop following ${state.artist.name}?`)) unfollow.mutate(state.artist.id);
       }} />}
     </Modal>
   );
 }
 
-function Body({ state: { artist, report, isFetching }, hasEventSource, onClose, onRefresh, onRemove }: Omit<Props, 'state'> & { state: ArtistState; onRemove: () => void }) {
+function Body({ state: { artist, report, isFetching }, hasEventSource, onClose, onRefresh, onEdit, onRemove }: Omit<Props, 'state'> & { state: ArtistState; onRemove: () => void }) {
   const s = report && summarize(report);
   return (
     <>
@@ -51,6 +53,11 @@ function Body({ state: { artist, report, isFetching }, hasEventSource, onClose, 
             ))}
           </div>
         </div>
+        {artist.mbid === null && (
+          <button className="btn ghost" onClick={() => onEdit(artist)}>
+            Edit
+          </button>
+        )}
         <button className="icon-btn close" title="Close" onClick={onClose}>
           ✕
         </button>

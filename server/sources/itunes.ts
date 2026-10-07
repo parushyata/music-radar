@@ -1,7 +1,7 @@
 // iTunes Search API (no key): Apple Music catalogue, including pre-orders with future dates.
 import { fetchJSON } from '../lib/http.ts';
 import { norm } from '../lib/text.ts';
-import type { Artist } from '../../shared/types.ts';
+import type { FollowedArtist } from '../../shared/types.ts';
 import type { RawRelease } from './types.ts';
 
 interface ItunesResult {
@@ -21,7 +21,7 @@ export async function findItunesArtistId(name: string): Promise<number | null> {
   return (data.results ?? []).find((r) => norm(r.artistName) === norm(name))?.artistId ?? null;
 }
 
-export async function itunesReleases(artist: Artist): Promise<RawRelease[]> {
+export async function itunesReleases(artist: FollowedArtist): Promise<RawRelease[]> {
   if (!artist.itunesId) return [];
   const data = await fetchJSON<{ results?: ItunesResult[] }>(
     `https://itunes.apple.com/lookup?id=${artist.itunesId}&entity=album&limit=200&sort=recent`,

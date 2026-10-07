@@ -26,9 +26,24 @@ export interface Artist {
   addedAt: string;
 }
 
-export interface ArtistWithReport extends Artist {
-  report: Report | null;
+/** An artist MusicBrainz doesn't list, added by hand and kept in its own table. */
+export interface ManualArtist extends Omit<Artist, 'mbid'> {
+  mbid: null;
 }
+
+/** Everyone the app tracks; `mbid === null` tells the two kinds apart. */
+export type FollowedArtist = Artist | ManualArtist;
+
+export interface ManualArtistInput {
+  name: string;
+  /** Short note shown under the name, e.g. "London singer-songwriter" */
+  disambiguation?: string;
+  links: string[];
+}
+
+export type ArtistWithReport = FollowedArtist & {
+  report: Report | null;
+};
 
 export interface ArtistCandidate {
   mbid: string;

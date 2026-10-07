@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api.ts';
 import { REPORT_TTL_MS } from '../../shared/types.ts';
-import type { Artist, ConfigStatus, Report } from '../../shared/types.ts';
+import type { ConfigStatus, FollowedArtist, Report } from '../../shared/types.ts';
 
 export const queryKeys = {
   artists: ['artists'] as const,
@@ -11,7 +11,7 @@ export const queryKeys = {
 };
 
 export interface ArtistState {
-  artist: Artist;
+  artist: FollowedArtist;
   report: Report | null;
   isFetching: boolean;
 }
@@ -56,8 +56,8 @@ export function useRefreshReports() {
   );
 }
 
-export type Tab = 'overview' | 'releases' | 'concerts' | 'news';
-const TABS: Tab[] = ['overview', 'releases', 'concerts', 'news'];
+export type Tab = 'overview' | 'releases' | 'concerts' | 'news' | 'manual';
+const TABS: Tab[] = ['overview', 'releases', 'concerts', 'news', 'manual'];
 
 /** Selected tab, mirrored in the URL hash so it survives reloads and can be linked to. */
 export function useHashTab(): [Tab, (t: Tab) => void] {

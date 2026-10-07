@@ -1,5 +1,5 @@
 // Queries every source for one artist, merges duplicates and caches the result.
-import { reportsRepo } from './db.ts';
+import { manualReportsRepo, reportsRepo } from './db.ts';
 import { apiKeys } from './config.ts';
 import { norm, today } from './lib/text.ts';
 import { recentReleases } from './sources/musicbrainz.ts';
@@ -9,7 +9,7 @@ import { ticketmasterEvents } from './sources/ticketmaster.ts';
 import { bandsintownEvents } from './sources/bandsintown.ts';
 import { newsFor } from './sources/news.ts';
 import { REPORT_TTL_MS } from '../shared/types.ts';
-import type { Artist, NewsItem, Release, Report, ShowEvent, SourceStatus } from '../shared/types.ts';
+import type { FollowedArtist, NewsItem, Release, Report, ShowEvent, SourceStatus } from '../shared/types.ts';
 import type { RawEvent, RawRelease } from './sources/types.ts';
 
 const EDITION_RE = /\s*[(\[][^)\]]*\b(deluxe|edition|remaster(ed)?|expanded|anniversary|explicit|clean|bonus)\b[^)\]]*[)\]]/gi;
@@ -78,8 +78,10 @@ async function settle<T>(name: string, fn: () => Promise<T[]>): Promise<Settled<
 
 const inflight = new Map<string, Promise<Report>>();
 
-export async function getReport(artist: Artist, force = false): Promise<Report> {
-  const cached = reportsRepo.get(artist.id);
+const storeFor = (artist: FollowedArtist) => (artist.mbid === null ? manualReportsRepo : reportsRepo);
+
+export async function getReport(artist: FollowedArtist, force = false): Promise<Report> {
+  const cached = storeFor(artist).get(artist.id);
   if (!force && cached && Date.now() - cached.fetchedAt < REPORT_TTL_MS) return cached;
 
   const pending = inflight.get(artist.id);
@@ -90,10 +92,11 @@ export async function getReport(artist: Artist, force = false): Promise<Report> 
   return promise;
 }
 
-async function buildReport(artist: Artist): Promise<Report> {
+async function buildReport(artist: FollowedArtist): Promise<Report> {
   const keys = apiKeys();
   const [mb, deezer, apple, tm, bit, news] = await Promise.all([
-    settle('MusicBrainz', () => recentReleases(artist)),
+    // Manual artists aren't on MusicBrainz; their releases come from Deezer and Apple Music only.
+    artist.mbid !== null ? settle('MusicBrainz', () => recentReleases(artist)) : null,
     settle('Deezer', () => deezerReleases(artist)),
     settle('Apple Music', () => itunesReleases(artist)),
     keys.ticketmaster ? settle('Ticketmaster', () => ticketmasterEvents(artist, keys.ticketmaster)) : null,
@@ -101,18 +104,18 @@ async function buildReport(artist: Artist): Promise<Report> {
     settle<NewsItem>('Google News', () => newsFor(artist)),
   ]);
   const eventSources = [tm, bit].filter((x) => x !== null);
-  const all: Settled<unknown>[] = [mb, deezer, apple, ...eventSources, news];
+  const all: Settled<unknown>[] = [...(mb ? [mb] : []), deezer, apple, ...eventSources, news];
 
   const report: Report = {
     artistId: artist.id,
     fetchedAt: Date.now(),
-    releases: mergeReleases([...mb.data, ...deezer.data, ...apple.data]),
+    releases: mergeReleases([...(mb?.data ?? []), ...deezer.data, ...apple.data]),
     events: mergeEvents(eventSources.flatMap((s) => s.data)),
     news: news.data,
     sources: all.map((s) => s.status),
   };
 
   // Don't cache a report where everything failed (e.g. offline).
-  if (all.some((s) => s.status.ok)) reportsRepo.save(report);
+  if (all.some((s) => s.status.ok)) storeFor(artist).save(report);
   return report;
 }
