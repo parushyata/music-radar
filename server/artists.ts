@@ -1,5 +1,4 @@
-import { randomUUID } from 'node:crypto';
-import { artistsRepo, manualArtistsRepo, manualReportsRepo } from './db.ts';
+import { artistsRepo, manualArtistsRepo } from './db.ts';
 import { norm } from './lib/text.ts';
 import { getArtistWithLinks, searchArtists } from './sources/musicbrainz.ts';
 import { findDeezerArtist } from './sources/deezer.ts';
@@ -56,7 +55,7 @@ async function resolveArtist(mbid: string): Promise<Artist> {
   const active = a.relations.filter((r) => !r.ended);
 
   return {
-    id: randomUUID(),
+    id: crypto.randomUUID(),
     mbid: a.mbid,
     name: a.name,
     disambiguation: a.disambiguation,
@@ -68,12 +67,26 @@ async function resolveArtist(mbid: string): Promise<Artist> {
   };
 }
 
-export async function followArtist(mbid: string): Promise<{ artist: Artist; existed: boolean }> {
-  const existing = artistsRepo.getByMbid(mbid);
-  if (existing) return { artist: existing, existed: true };
-  const artist = await resolveArtist(mbid);
-  artistsRepo.insert(artist);
-  return { artist, existed: false };
+/**
+ * Follow a MusicBrainz artist. The artist row is shared: someone else may already follow them,
+ * in which case nothing needs looking up. `existed` means this user already followed them.
+ */
+export async function followArtist(db: D1Database, userId: string, mbid: string): Promise<{ artist: Artist; existed: boolean }> {
+  const repo = artistsRepo(db);
+  let artist = await repo.getByMbid(mbid);
+  if (!artist) {
+    const resolved = await resolveArtist(mbid);
+    try {
+      await repo.insert(resolved);
+      artist = resolved;
+    } catch (e) {
+      // Two people adding the same new artist at once: the other insert won.
+      artist = await repo.getByMbid(mbid);
+      if (!artist) throw e;
+    }
+  }
+  const added = await repo.follow(userId, artist.id);
+  return { artist, existed: !added };
 }
 
 /** Build a manual artist from the form, looking their Deezer and Apple Music IDs up again. */
@@ -98,19 +111,19 @@ async function buildManualArtist(input: ManualArtistInput, id: string, addedAt: 
  * Follow an artist MusicBrainz doesn't list. Their releases, concerts and news are looked
  * up by name, unless the links include their Deezer or Apple Music page.
  */
-export async function addManualArtist(input: ManualArtistInput): Promise<{ artist: ManualArtist; existed: boolean }> {
-  const existing = manualArtistsRepo.getByName(input.name.trim());
+export async function addManualArtist(db: D1Database, userId: string, input: ManualArtistInput): Promise<{ artist: ManualArtist; existed: boolean }> {
+  const repo = manualArtistsRepo(db);
+  const existing = await repo.getByName(userId, input.name.trim());
   if (existing) return { artist: existing, existed: true };
-  const artist = await buildManualArtist(input, randomUUID(), new Date().toISOString());
-  manualArtistsRepo.insert(artist);
+  const artist = await buildManualArtist(input, crypto.randomUUID(), new Date().toISOString());
+  await repo.insert(userId, artist);
   return { artist, existed: false };
 }
 
-/** Save edits to a manual artist and drop their cached report so it's re-checked with the new details. */
-export async function updateManualArtist(current: ManualArtist, input: ManualArtistInput): Promise<ManualArtist> {
+/** Save edits to a manual artist; its cached report is dropped so it's re-checked with the new details. */
+export async function updateManualArtist(db: D1Database, userId: string, current: ManualArtist, input: ManualArtistInput): Promise<ManualArtist> {
   const artist = await buildManualArtist(input, current.id, current.addedAt);
-  manualArtistsRepo.update(artist);
-  manualReportsRepo.remove(artist.id);
+  await manualArtistsRepo(db).update(userId, artist);
   return artist;
 }
 
@@ -125,7 +138,8 @@ async function bestMatch(name: string) {
   );
 }
 
-export async function followMany(names: string[]): Promise<BulkResult[]> {
+/** Callers keep `names` short (see BULK_CHUNK): each artist takes ~5 outside requests and the free plan allows 50. */
+export async function followMany(db: D1Database, userId: string, names: string[]): Promise<BulkResult[]> {
   const results: BulkResult[] = [];
   for (const name of names) {
     try {
@@ -134,8 +148,8 @@ export async function followMany(names: string[]): Promise<BulkResult[]> {
         results.push({ name, ok: false, error: 'No confident match — add it with search instead' });
         continue;
       }
-      const { artist, existed } = await followArtist(match.mbid);
-      results.push({ name, ok: true, existed, matched: artist.name, disambiguation: artist.disambiguation });
+      const { artist, existed } = await followArtist(db, userId, match.mbid);
+      results.push({ name, ok: true, existed, id: artist.id, matched: artist.name, disambiguation: artist.disambiguation });
     } catch (e) {
       results.push({ name, ok: false, error: (e as Error).message });
     }

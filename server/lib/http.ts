@@ -1,4 +1,5 @@
-const USER_AGENT = 'MusicRadar/2.0 (personal self-hosted app)';
+// MusicBrainz asks for a way to reach the app's owner in the User-Agent.
+const USER_AGENT = 'MusicRadar/3.0 ( https://github.com/parushyata/music-radar )';
 
 export class HttpError extends Error {
   status: number;

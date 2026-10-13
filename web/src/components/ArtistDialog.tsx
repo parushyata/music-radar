@@ -20,9 +20,8 @@ export function ArtistDialog({ state, hasEventSource, onClose, onRefresh, onEdit
   const qc = useQueryClient();
   const unfollow = useMutation({
     mutationFn: api.unfollow,
-    onSuccess: (_res, id) => {
+    onSuccess: () => {
       onClose();
-      qc.removeQueries({ queryKey: queryKeys.report(id) });
       qc.invalidateQueries({ queryKey: queryKeys.artists });
     },
   });
@@ -83,7 +82,7 @@ function Body({ state: { artist, report, isFetching }, hasEventSource, onClose, 
               <EventList items={report.events.map((event) => ({ event }))} />
             ) : (
               <p className="muted">
-                {hasEventSource ? 'No upcoming dates on connected ticketing sources.' : 'Add a Ticketmaster key in Settings to see dates.'}
+                {hasEventSource ? 'No upcoming dates on connected ticketing sources.' : 'Concert dates aren’t set up on this Music Radar.'}
               </p>
             )}
 

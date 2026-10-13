@@ -210,3 +210,11 @@ a.btn { text-decoration: none; display: inline-block; }
 .detail-head .close { align-self: flex-start; font-size: 20px; }
 .dlg label > span { display: flex; align-items: center; }
 .icon-btn:disabled { opacity: .4; cursor: progress; }
+
+.me { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.me img { width: 26px; height: 26px; border-radius: 50%; }
+.signin { min-height: 80vh; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; padding: 16px; }
+.signin .logo { font-size: 48px; }
+.signin h1 { font-size: 32px; }
+.signin p { max-width: 420px; margin: 0; }
+.small { font-size: 13px; }

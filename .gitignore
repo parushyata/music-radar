@@ -4,3 +4,6 @@ data/
 .env
 .DS_Store
 my-own-notes
+.dev.vars
+.wrangler/
+worker-configuration.d.ts

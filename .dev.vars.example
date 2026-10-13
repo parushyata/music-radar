@@ -1,0 +1,8 @@
+# Copy to .dev.vars for `npm run dev`. Never commit .dev.vars.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+TICKETMASTER_API_KEY=
+# Optional
+BANDSINTOWN_APP_ID=
+# Local only: enables /auth/dev?email=you@example.com so you can sign in without Google.
+DEV_LOGIN=true

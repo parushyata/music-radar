@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api.ts';
-import { queryKeys } from '../hooks.ts';
+import { queryKeys, refreshInto } from '../hooks.ts';
 import type { ArtistCandidate } from '../../../shared/types.ts';
 
 function useDebounced<T>(value: T, ms: number): T {
@@ -37,7 +37,10 @@ export function ArtistSearch({
 
   const follow = useMutation({
     mutationFn: (c: ArtistCandidate) => api.follow(c.mbid),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.artists }),
+    onSuccess: async ({ artist, existed }) => {
+      await qc.invalidateQueries({ queryKey: queryKeys.artists });
+      if (!existed) await refreshInto(qc, artist.id).catch(() => {});
+    },
     onError: (e, c) => alert(`Could not add ${c.name}: ${e.message}`),
   });
 

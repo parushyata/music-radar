@@ -33,29 +33,35 @@ interface MbReleaseGroup {
   releases?: { status?: string }[];
 }
 
-// MusicBrainz allows ~1 request/second, so every call goes through one queue.
-let queue: Promise<unknown> = Promise.resolve();
+// MusicBrainz allows ~1 request/second. Each call books the next free slot and waits for it.
+// Only a timestamp is shared: Workers can't await promises or timers that belong to another request.
+let nextSlot = 0;
+const SPACING_MS = 1100;
 
-function mb<T>(endpoint: string, params: Record<string, string | number>): Promise<T> {
+async function waitForSlot(): Promise<void> {
+  const now = Date.now();
+  const slot = Math.max(now, nextSlot);
+  nextSlot = slot + SPACING_MS;
+  if (slot > now) await sleep(slot - now);
+}
+
+async function mb<T>(endpoint: string, params: Record<string, string | number>): Promise<T> {
   const url = new URL(`https://musicbrainz.org/ws/2/${endpoint}`);
   for (const [k, v] of Object.entries({ ...params, fmt: 'json' })) url.searchParams.set(k, String(v));
 
-  const run = async (): Promise<T> => {
-    for (let attempt = 0; ; attempt++) {
-      try {
-        return await fetchJSON<T>(url);
-      } catch (e) {
-        if (e instanceof HttpError && e.status === 503 && attempt < 3) {
-          await sleep(1500 * (attempt + 1));
-          continue;
-        }
-        throw e;
+  for (let attempt = 0; ; attempt++) {
+    await waitForSlot();
+    try {
+      return await fetchJSON<T>(url);
+    } catch (e) {
+      // 503 = MusicBrainz is throttling; back off and retry a few times.
+      if (e instanceof HttpError && e.status === 503 && attempt < 3) {
+        await sleep(1500 * (attempt + 1));
+        continue;
       }
+      throw e;
     }
-  };
-  const result = queue.then(run);
-  queue = result.catch(() => {}).then(() => sleep(1100));
-  return result;
+  }
 }
 
 export async function searchArtists(q: string): Promise<ArtistCandidate[]> {

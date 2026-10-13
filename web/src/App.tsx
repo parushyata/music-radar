@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { useArtistStates, useConfig, useHashTab, useRefreshReports, type Tab } from './hooks.ts';
+import { useQueryClient } from '@tanstack/react-query';
+import { api } from './api.ts';
+import { useArtistStates, useConfig, useHashTab, useMe, useRefreshArtist, type Tab } from './hooks.ts';
 import { ArtistSearch } from './components/ArtistSearch.tsx';
 import { BulkAddDialog } from './components/BulkAddDialog.tsx';
 import { ManualArtistDialog, type ManualDialogTarget } from './components/ManualArtistDialog.tsx';
-import { SettingsDialog } from './components/SettingsDialog.tsx';
+import { SignIn } from './components/SignIn.tsx';
 import { ArtistDialog } from './components/ArtistDialog.tsx';
 import { OverviewView } from './views/OverviewView.tsx';
 import { ReleasesView } from './views/ReleasesView.tsx';
@@ -19,23 +21,38 @@ const TAB_LABELS: Record<Tab, string> = {
   manual: 'Manual',
 };
 
+/** Shows the sign-in screen until there's a session, then the app. */
 export function App() {
-  const { artists, isLoading, error } = useArtistStates();
+  const { me, isLoading, signedOut, error } = useMe();
+  if (isLoading) return null;
+  if (signedOut) return <SignIn />;
+  if (error || !me) {
+    return (
+      <div className="empty">
+        <h3>Can't reach Music Radar</h3>
+        <p>{error?.message ?? 'Unknown error'}. Try reloading the page.</p>
+      </div>
+    );
+  }
+  return <Radar me={me} />;
+}
+
+function Radar({ me }: { me: NonNullable<ReturnType<typeof useMe>['me']> }) {
+  const qc = useQueryClient();
+  const { refresh, refreshing } = useRefreshArtist();
+  const { artists, isLoading, error } = useArtistStates(refreshing);
   const config = useConfig();
-  const refresh = useRefreshReports();
   const [tab, setTab] = useHashTab();
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [manualTarget, setManualTarget] = useState<ManualDialogTarget | null>(null);
   const [openArtistId, setOpenArtistId] = useState<string | null>(null);
-  const [refreshingAll, setRefreshingAll] = useState(false);
 
   const hasEventSource = config.ticketmaster || config.bandsintown;
   const openArtist = artists.find((s) => s.artist.id === openArtistId) ?? null;
   // Overview lists MusicBrainz artists; manual ones get their own tab. Releases, Concerts and News show both.
   const mbArtists = artists.filter((s) => s.artist.mbid !== null);
   const manualArtists = artists.filter((s) => s.artist.mbid === null);
-  const refreshOne = (id: string) => void refresh([id]);
+  const refreshOne = (id: string) => void refresh(id);
 
   const counts: Partial<Record<Tab, string | number>> = {
     releases: artists.reduce((n, s) => n + (s.report?.releases.filter((r) => r.upcoming).length ?? 0), 0) || '',
@@ -45,13 +62,10 @@ export function App() {
   if (counts.releases) counts.releases = `${counts.releases} upcoming`;
   counts.manual = manualArtists.length || '';
 
-  const refreshAll = async () => {
-    setRefreshingAll(true);
-    try {
-      await refresh(artists.map((s) => s.artist.id));
-    } finally {
-      setRefreshingAll(false);
-    }
+  const signOut = async () => {
+    await api.logout();
+    qc.clear();
+    location.href = '/';
   };
 
   return (
@@ -65,11 +79,12 @@ export function App() {
           </div>
         </div>
         <div className="top-actions">
-          <button className="btn ghost" disabled={refreshingAll || !artists.length} onClick={refreshAll} title="Re-check every source now">
-            {refreshingAll ? 'Refreshing…' : '↻ Refresh all'}
-          </button>
-          <button className="btn ghost" onClick={() => setSettingsOpen(true)}>
-            ⚙ Settings
+          <span className="me" title={me.email}>
+            {me.picture && <img src={me.picture} alt="" referrerPolicy="no-referrer" />}
+            {me.name || me.email}
+          </span>
+          <button className="btn ghost" onClick={signOut}>
+            Sign out
           </button>
         </div>
       </header>
@@ -87,16 +102,6 @@ export function App() {
         </button>
       </section>
 
-      {!hasEventSource && artists.length > 0 && (
-        <div className="banner">
-          Concert dates need a free Ticketmaster API key.{' '}
-          <button className="linkish" onClick={() => setSettingsOpen(true)}>
-            Add it in Settings
-          </button>{' '}
-          — takes about two minutes.
-        </div>
-      )}
-
       <nav className="tabs" role="tablist">
         {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>
@@ -109,8 +114,8 @@ export function App() {
       <main>
         {error ? (
           <div className="empty">
-            <h3>Can't reach the Music Radar server</h3>
-            <p>{error.message}. Is it running? Start it with <code>npm run dev</code>.</p>
+            <h3>Can't load your artists</h3>
+            <p>{error.message}. Try reloading the page.</p>
           </div>
         ) : isLoading ? null : (
           <>
@@ -119,7 +124,7 @@ export function App() {
             )}
             {tab === 'releases' && <ReleasesView artists={artists} />}
             {tab === 'concerts' && (
-              <ConcertsView artists={artists} hasEventSource={hasEventSource} onOpenSettings={() => setSettingsOpen(true)} />
+              <ConcertsView artists={artists} hasEventSource={hasEventSource} />
             )}
             {tab === 'news' && <NewsView artists={artists} />}
             {tab === 'manual' && (
@@ -137,7 +142,6 @@ export function App() {
 
       <BulkAddDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
       <ManualArtistDialog target={manualTarget} onClose={() => setManualTarget(null)} />
-      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <ArtistDialog
         state={openArtist}
         hasEventSource={hasEventSource}
