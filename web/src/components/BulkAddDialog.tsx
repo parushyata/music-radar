@@ -1,15 +1,30 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api.ts';
-import { queryKeys } from '../hooks.ts';
+import { queryKeys, refreshInto } from '../hooks.ts';
 import { Modal } from './ui.tsx';
+import { BULK_CHUNK, type BulkResult } from '../../../shared/types.ts';
 
 export function BulkAddDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
+  const [done, setDone] = useState(0);
 
+  // The server takes a few names per request (Cloudflare's per-request limits), so send them in groups.
   const bulk = useMutation({
-    mutationFn: api.followMany,
+    mutationFn: async (all: string[]) => {
+      const results: BulkResult[] = [];
+      setDone(0);
+      for (let i = 0; i < all.length; i += BULK_CHUNK) {
+        const chunk = await api.followMany(all.slice(i, i + BULK_CHUNK));
+        results.push(...chunk);
+        await qc.invalidateQueries({ queryKey: queryKeys.artists });
+        // Fetch reports for newly followed artists now rather than waiting for the background refresh.
+        for (const r of chunk) if (r.ok && !r.existed) await refreshInto(qc, r.id).catch(() => {});
+        setDone(results.length);
+      }
+      return results;
+    },
     onSuccess: (results) => {
       // Leave the names that failed in the box so they can be fixed and retried.
       setText(results.filter((r) => !r.ok).map((r) => r.name).join('\n'));
@@ -32,7 +47,7 @@ export function BulkAddDialog({ open, onClose }: { open: boolean; onClose: () =>
         <div className="bulk-result">
           {bulk.isPending && (
             <span className="muted">
-              Looking up {names.length} artist{names.length === 1 ? '' : 's'} (about 2 seconds each)…
+              Looked up {done} of {names.length} (about 2 seconds each)…
             </span>
           )}
           {bulk.error && <div className="bad">{bulk.error.message}</div>}

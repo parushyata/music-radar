@@ -1,6 +1,16 @@
 // Types shared by the API server and the React app.
 
-export const REPORT_TTL_MS = 6 * 60 * 60 * 1000;
+/** Reports older than this are refreshed in the background (one artist a minute; see server/refresh.ts). */
+export const REPORT_TTL_MS = 12 * 60 * 60 * 1000;
+
+/** "Add many" sends names in groups this size: each takes ~5 outside requests and a request may make 50. */
+export const BULK_CHUNK = 5;
+
+export interface Me {
+  email: string;
+  name: string;
+  picture: string | null;
+}
 
 export interface SourceLink {
   name: string;
@@ -109,11 +119,7 @@ export interface ConfigStatus {
   bandsintown: boolean;
 }
 
-export interface ConfigUpdate {
-  ticketmasterKey?: string;
-  bandsintownAppId?: string;
-}
 
 export type BulkResult =
-  | { name: string; ok: true; existed: boolean; matched: string; disambiguation: string }
+  | { name: string; ok: true; existed: boolean; id: string; matched: string; disambiguation: string }
   | { name: string; ok: false; error: string };

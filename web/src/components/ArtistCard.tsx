@@ -81,7 +81,7 @@ export function ArtistCard({ state: { artist, report, isFetching }, hasEventSour
                   </span>
                 </>
               ) : (
-                <span className="muted">{hasEventSource ? 'No dates announced' : 'Needs API key (Settings)'}</span>
+                <span className="muted">{hasEventSource ? 'No dates announced' : 'Concerts not set up'}</span>
               )}
             </Fact>
             {report.news[0] && (

@@ -4,11 +4,14 @@ import type {
   ArtistWithReport,
   BulkResult,
   ConfigStatus,
-  ConfigUpdate,
   ManualArtist,
   ManualArtistInput,
+  Me,
   Report,
 } from '../../shared/types.ts';
+
+/** Thrown on 401 so the app can show the sign-in screen. */
+export class SignedOutError extends Error {}
 
 async function request<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const hasBody = init.body !== undefined;
@@ -25,6 +28,7 @@ async function request<T>(path: string, init: { method?: string; body?: unknown 
   } catch {
     throw new Error(res.ok ? 'The server sent an unreadable reply' : `${res.status} ${text || res.statusText} — try restarting the server`);
   }
+  if (res.status === 401) throw new SignedOutError(data?.error ?? 'Not signed in');
   if (!res.ok) throw new Error(data?.error ?? res.statusText);
   return data as T;
 }
@@ -39,7 +43,8 @@ export const api = {
     request<ManualArtist>(`manual-artists/${id}`, { method: 'PUT', body: input }),
   followMany: (names: string[]) => request<BulkResult[]>('artists/bulk', { method: 'POST', body: { names } }),
   unfollow: (id: string) => request<{ ok: true }>(`artists/${id}`, { method: 'DELETE' }),
-  report: (id: string, refresh = false) => request<Report>(`artists/${id}/report${refresh ? '?refresh=1' : ''}`),
+  refresh: (id: string) => request<Report>(`artists/${id}/refresh`, { method: 'POST' }),
   config: () => request<ConfigStatus>('config'),
-  saveConfig: (update: ConfigUpdate) => request<ConfigStatus>('config', { method: 'POST', body: update }),
+  me: () => request<Me>('me'),
+  logout: () => fetch('/auth/logout', { method: 'POST' }),
 };

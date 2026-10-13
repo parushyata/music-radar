@@ -1,0 +1,28 @@
+// Cloudflare Workers config. See README → "Deploying to Cloudflare".
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "music-radar",
+  "main": "server/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist/",
+    "not_found_handling": "single-page-application",
+    // The API and sign-in routes go to the Worker; everything else is the built React app.
+    "run_worker_first": ["/api/*", "/auth/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "music-radar",
+      "database_id": "9ba72caf-9d50-41b8-a63c-b1f3393c3b2b",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Every minute, refresh the stalest followed artist (see server/refresh.ts).
+  "triggers": { "crons": ["* * * * *"] },
+  "vars": {
+    // Comma-separated emails allowed to sign in. Empty = anyone with a Google account.
+    "ALLOWED_EMAILS": "parushyata@gmail.com"
+  },
+  "observability": { "enabled": true }
+}

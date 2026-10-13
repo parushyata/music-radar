@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api.ts';
-import { queryKeys } from '../hooks.ts';
+import { queryKeys, refreshInto } from '../hooks.ts';
 import { Modal } from './ui.tsx';
 import type { ManualArtist, ManualArtistInput } from '../../../shared/types.ts';
 
@@ -19,10 +19,10 @@ export function ManualArtistDialog({ target, onClose }: { target: ManualDialogTa
   const save = useMutation({
     mutationFn: async (input: ManualArtistInput) =>
       editing ? { artist: await api.updateManual(editing.id, input), existed: false } : api.addManual(input),
-    onSuccess: ({ artist }) => {
-      qc.invalidateQueries({ queryKey: queryKeys.artists });
-      // The server dropped the cached report, so fetch one with the new details.
-      if (editing) qc.invalidateQueries({ queryKey: queryKeys.report(artist.id) });
+    onSuccess: async ({ artist, existed }) => {
+      await qc.invalidateQueries({ queryKey: queryKeys.artists });
+      // New, or edited (which drops the old report): fetch its releases, shows and news now.
+      if (!existed) await refreshInto(qc, artist.id).catch(() => {});
     },
   });
 
