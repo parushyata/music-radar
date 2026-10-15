@@ -8,7 +8,10 @@
     "directory": "./dist/",
     "not_found_handling": "single-page-application",
     // The API and sign-in routes go to the Worker; everything else is the built React app.
-    "run_worker_first": ["/api/*", "/auth/*"]
+    "run_worker_first": [
+      "/api/*",
+      "/auth/*"
+    ]
   },
   "d1_databases": [
     {
@@ -19,10 +22,16 @@
     }
   ],
   // Every minute, refresh the stalest followed artist (see server/refresh.ts).
-  "triggers": { "crons": ["* * * * *"] },
+  "triggers": {
+    "crons": [
+      "* * * * *"
+    ]
+  },
   "vars": {
     // Comma-separated emails allowed to sign in. Empty = anyone with a Google account.
-    "ALLOWED_EMAILS": "parushyata@gmail.com"
+    "ALLOWED_EMAILS": "parushyata@gmail.com, simon.maspero@gmail.com"
   },
-  "observability": { "enabled": true }
+  "observability": {
+    "enabled": true
+  }
 }

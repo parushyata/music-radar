@@ -62,8 +62,9 @@ function Radar({ me }: { me: NonNullable<ReturnType<typeof useMe>['me']> }) {
   if (counts.releases) counts.releases = `${counts.releases} upcoming`;
   counts.manual = manualArtists.length || '';
 
-  const signOut = async () => {
-    await api.logout();
+  const signOut = async (allDevicesAndBrowsers = false) => {
+    if (allDevicesAndBrowsers && !confirm('Sign out on all devices and browsers?')) return;
+    await (allDevicesAndBrowsers ? api.logoutAll() : api.logout());
     qc.clear();
     location.href = '/';
   };
@@ -83,9 +84,8 @@ function Radar({ me }: { me: NonNullable<ReturnType<typeof useMe>['me']> }) {
             {me.picture && <img src={me.picture} alt="" referrerPolicy="no-referrer" />}
             {me.name || me.email}
           </span>
-          <button className="btn ghost" onClick={signOut}>
-            Sign out
-          </button>
+          <button className="btn ghost" onClick={() => signOut()}>Sign out</button>
+          <button className="btn ghost" onClick={() => signOut(true)}>Sign out on all devices and browsers</button>
         </div>
       </header>
 
