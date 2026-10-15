@@ -21,7 +21,7 @@ async function sha256(text: string): Promise<string> {
 
 function emailAllowed(env: Env, email: string): boolean {
   const allowed = (env.ALLOWED_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
-  return !allowed.length || allowed.includes(email.toLowerCase());
+  return allowed.includes(email.toLowerCase());
 }
 
 const cookieOptions = (url: string, maxAge: number) => ({
