@@ -1,14 +1,16 @@
 // Cloudflare Worker: the JSON API, Google sign-in, and the background refresh.
 // The React app itself is served from dist/ by Workers static assets (wrangler.jsonc).
 import { Hono } from 'hono';
-import { authRoutes, requireUser, type AppEnv } from './auth.ts';
-import { artistsRepo, followedListJson, manualArtistsRepo } from './db.ts';
+import { authRoutes, requireUser, SESSION_COOKIE, type AppEnv } from './auth.ts';
+import { artistsRepo, followedListJson, manualArtistsRepo, sessionsRepo } from './db.ts';
 import { addManualArtist, followArtist, followMany, updateManualArtist } from './artists.ts';
 import { buildReport } from './report.ts';
 import { refreshStalest } from './refresh.ts';
 import { searchArtists } from './sources/musicbrainz.ts';
 import { BULK_CHUNK, type ConfigStatus, type FollowedArtist, type ManualArtistInput, type Me } from '../shared/types.ts';
 import type { Env } from './env.ts';
+import { deleteCookie } from 'hono/cookie';
+
 
 function readManualInput(body: Partial<ManualArtistInput>): ManualArtistInput | null {
   if (!body.name?.trim()) return null;
@@ -73,6 +75,11 @@ const api = new Hono<AppEnv>()
     const artist = await findFollowed(c.env.DB, c.get('user').id, c.req.param('id'));
     if (!artist) return c.json({ error: 'Artist not found' }, 404);
     return c.json(await buildReport(c.env, artist));
+  })
+  .post('/logout-all', async (c) => {
+    await sessionsRepo(c.env.DB).removeAllForUser(c.get('user').id);
+    deleteCookie(c, SESSION_COOKIE, { path: '/' });
+    return c.json({ ok: true });
   });
 
 const app = new Hono<AppEnv>();

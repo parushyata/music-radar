@@ -11,7 +11,7 @@ import type {
 } from '../../shared/types.ts';
 
 /** Thrown on 401 so the app can show the sign-in screen. */
-export class SignedOutError extends Error {}
+export class SignedOutError extends Error { }
 
 async function request<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const hasBody = init.body !== undefined;
@@ -47,4 +47,5 @@ export const api = {
   config: () => request<ConfigStatus>('config'),
   me: () => request<Me>('me'),
   logout: () => fetch('/auth/logout', { method: 'POST' }),
+  logoutAll: () => request<{ ok: true }>('logout-all', { method: 'POST' }),
 };

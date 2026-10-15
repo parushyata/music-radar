@@ -100,6 +100,7 @@ export function sessionsRepo(db: D1Database) {
     },
     remove: (tokenHash: string) => db.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(tokenHash).run(),
     removeExpired: () => db.prepare('DELETE FROM sessions WHERE expires_at <= ?').bind(new Date().toISOString()).run(),
+    removeAllForUser: (userId: string) => db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run(),
   };
 }
 

@@ -5,7 +5,7 @@ import { createMiddleware } from 'hono/factory';
 import { sessionsRepo, usersRepo, type User } from './db.ts';
 import type { Env } from './env.ts';
 
-const SESSION_COOKIE = 'mr_session';
+export const SESSION_COOKIE = 'mr_session';
 const STATE_COOKIE = 'mr_oauth_state';
 const SESSION_DAYS = 30;
 
