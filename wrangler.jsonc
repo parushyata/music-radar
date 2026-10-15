@@ -27,10 +27,6 @@
       "* * * * *"
     ]
   },
-  "vars": {
-    // Comma-separated emails allowed to sign in. Empty = anyone with a Google account.
-    "ALLOWED_EMAILS": "parushyata@gmail.com, simon.maspero@gmail.com"
-  },
   "observability": {
     "enabled": true
   }

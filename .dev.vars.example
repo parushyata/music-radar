@@ -6,3 +6,4 @@ TICKETMASTER_API_KEY=
 BANDSINTOWN_APP_ID=
 # Local only: enables /auth/dev?email=you@example.com so you can sign in without Google.
 DEV_LOGIN=true
+ALLOWED_EMAILS=
