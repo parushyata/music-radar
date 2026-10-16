@@ -49,8 +49,8 @@ You need a free Cloudflare account and a Google Cloud project (for sign-in). One
    npx wrangler secret put GOOGLE_CLIENT_SECRET
    npx wrangler secret put TICKETMASTER_API_KEY     # concerts; optional BANDSINTOWN_APP_ID
    ```
-6. **Who may sign in**: set `ALLOWED_EMAILS` in `wrangler.jsonc` (comma-separated) and `npm run deploy` again.
-   Empty means anyone with a Google account.
+6. **Who may sign in**: `printf 'you@gmail.com,friend@gmail.com' | npx wrangler secret put ALLOWED_EMAILS`
+   (comma-separated). Nobody can sign in while it's unset.
 
 **Bring over a local list** (from the version that stored data in `data/music-radar.db`):
 ```sh

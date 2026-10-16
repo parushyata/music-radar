@@ -7,3 +7,4 @@ my-own-notes
 .dev.vars
 .wrangler/
 worker-configuration.d.ts
+myNotes.md
