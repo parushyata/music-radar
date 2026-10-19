@@ -1,4 +1,4 @@
-import { Badge, Cover, ExternalLink } from './ui.tsx';
+import { Badge, Cover, ExternalLink, SourceName } from './ui.tsx';
 import { daysFromToday, fmtDate, isFullDate, relDays } from '../lib/dates.ts';
 import type { Release } from '../../../shared/types.ts';
 
@@ -19,7 +19,7 @@ export function ReleaseCard({ release: r, artistName }: { release: Release; arti
         <div className="srcs">
           {r.sources.map((s) => (
             <ExternalLink key={s.name} href={s.url}>
-              {s.name} ↗
+              <SourceName source={s} /> ↗
             </ExternalLink>
           ))}
         </div>

@@ -137,6 +137,7 @@ export function artistsRepo(db: D1Database) {
       await db.batch([
         db.prepare('DELETE FROM user_artists WHERE user_id = ? AND artist_id = ?').bind(userId, artistId),
         db.prepare('DELETE FROM artists WHERE id = ? AND NOT EXISTS (SELECT 1 FROM user_artists WHERE artist_id = ?)').bind(artistId, artistId),
+        ...deleteLinkFindings(db, artistId, 'AND NOT EXISTS (SELECT 1 FROM artists WHERE id = ?)'),
       ]);
     },
   };
@@ -168,9 +169,32 @@ export function manualArtistsRepo(db: D1Database) {
           .bind(...fields(a), a.id, userId),
         db.prepare('DELETE FROM manual_reports WHERE artist_id = ?').bind(a.id),
       ]),
-    remove: (userId: string, id: string) => db.prepare('DELETE FROM manual_artists WHERE user_id = ? AND id = ?').bind(userId, id).run(),
+    remove: (userId: string, id: string) =>
+      db.batch([
+        db.prepare('DELETE FROM manual_artists WHERE user_id = ? AND id = ?').bind(userId, id),
+        ...deleteLinkFindings(db, id, 'AND NOT EXISTS (SELECT 1 FROM manual_artists WHERE id = ?)'),
+      ]),
   };
 }
+
+/**
+ * The link reader's findings and check record have no foreign key (artist_id can point at either artist table),
+ * so they're deleted by hand once the artist row is gone. `unlessExists` re-checks that, by the same id.
+ */
+function deleteLinkFindings(db: D1Database, artistId: string, unlessExists: string) {
+  return ['link_findings', 'link_checks'].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE artist_id = ? ${unlessExists}`).bind(artistId, artistId),
+  );
+}
+
+export interface LinkFindingRow {
+  kind: 'release' | 'show';
+  data: string;
+}
+
+/** What the link reader found on an artist's own pages (scripts/link-reader). */
+export const linkFindings = async (db: D1Database, artistId: string): Promise<LinkFindingRow[]> =>
+  (await db.prepare('SELECT kind, data FROM link_findings WHERE artist_id = ?').bind(artistId).all<LinkFindingRow>()).results;
 
 export type ReportTable = 'reports' | 'manual_reports';
 

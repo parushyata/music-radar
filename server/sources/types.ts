@@ -8,10 +8,13 @@ export interface RawRelease {
   cover: string | null;
   source: string;
   url: string;
+  /** Link-reader findings: the words on the page. */
+  quote?: string;
 }
 
 /** A concert as reported by a single source, before merging. */
 export interface RawEvent extends Omit<ShowEvent, 'sources'> {
   source: string;
   url: string;
+  quote?: string;
 }

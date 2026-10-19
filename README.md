@@ -66,6 +66,29 @@ cp .dev.vars.example .dev.vars    # fill in keys; DEV_LOGIN=true allows /auth/de
 npm run db:migrate:local
 npm run dev                       # Worker on :8787, Vite on http://localhost:5173
 curl "http://localhost:8787/cdn-cgi/local/scheduled"   # run the background refresh once
+npm test                          # unit tests (scripts/)
+```
+
+## Link reader (AI agent)
+
+Many artists have nothing upcoming in Deezer, Apple Music or Ticketmaster, but their own pages do
+(a tour page, a pre-order on Bandcamp). A command you run on your Mac when you want asks a Claude Code agent to read those pages
+and saves what it finds to D1; the next report rebuild merges it in, marked **AI** with the page's words as a tooltip.
+Design: [SPEC-link-reader.md](SPEC-link-reader.md).
+
+- Runs `claude -p` (Sonnet) with only the WebFetch tool, so it uses your Claude subscription, not API credit.
+- Checks up to 5 artists per run: followed, with readable links (not Instagram, Spotify…), nothing upcoming from
+  the regular sources, and not checked in the last 7 days.
+- Keeps a finding only if it cites a page the agent actually opened, quotes it, and has a valid future date
+  (`scripts/link-reader/checks.ts`). Everything else is printed as "dropped".
+- Writes to D1 through Cloudflare's HTTP API with `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` from `.env`.
+
+```sh
+npm run db:migrate                                   # once: creates link_findings and link_checks
+npm run link-reader -- --dry-run                     # see what it would find, save nothing
+npm run link-reader -- --artist "Daughter"           # one artist, even if checked recently
+npm run link-reader                                  # check up to 5 and save
+npm run link-reader -- --db-file data/test.db        # against a local SQLite copy instead of the live database
 ```
 
 ## Project layout
@@ -81,7 +104,9 @@ server/
   report.ts             Query every source, merge duplicates, store a compact report
   refresh.ts            Background refresh (one artist per cron run)
   sources/              One module per external API
-scripts/export-local.ts Copy the old local database into D1
+scripts/
+  export-local.ts       Copy the old local database into D1
+  link-reader/          The AI link reader: index.ts (run), agent.ts (claude -p), checks.ts (verify), db.ts (D1)
 web/src/                React app (sign-in screen, tabs, dialogs)
 ```
 

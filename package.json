@@ -10,19 +10,22 @@
     "dev:web": "vite",
     "db:migrate:local": "wrangler d1 migrations apply music-radar --local",
     "db:migrate": "wrangler d1 migrations apply music-radar --remote",
-    "typecheck": "wrangler types && tsc -p tsconfig.server.json && tsc -p tsconfig.web.json",
+    "typecheck": "wrangler types && tsc -p tsconfig.server.json && tsc -p tsconfig.web.json && tsc -p tsconfig.scripts.json",
     "build": "npm run typecheck && vite build",
     "deploy": "npm run build && wrangler deploy",
-    "import-local": "node scripts/export-local.ts"
+    "import-local": "node scripts/export-local.ts",
+    "link-reader": "node scripts/link-reader/index.ts",
+    "test": "node --test scripts/**/*.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.1",
     "hono": "^4.13.13",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
