@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { ExternalLink } from './ui.tsx';
+import { ExternalLink, isAiSource, SourceName } from './ui.tsx';
 import { MONTHS, parseDate, relDays } from '../lib/dates.ts';
 import { place } from '../lib/summary.ts';
 import type { ShowEvent } from '../../../shared/types.ts';
@@ -28,7 +28,7 @@ function EventRow({ event: e, artistName }: { event: ShowEvent; artistName?: str
       <div className="actions srcs">
         {e.sources.map((s) => (
           <ExternalLink key={s.name} href={s.url} className="btn ghost">
-            Tickets · {s.name}
+            {isAiSource(s) ? <SourceName source={s} /> : `Tickets · ${s.name}`}
           </ExternalLink>
         ))}
       </div>

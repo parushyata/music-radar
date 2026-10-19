@@ -14,13 +14,15 @@
     "build": "npm run typecheck && vite build",
     "deploy": "npm run build && wrangler deploy",
     "import-local": "node scripts/export-local.ts",
-    "link-reader": "node scripts/link-reader.ts"
+    "link-reader": "node scripts/link-reader/index.ts",
+    "test": "node --test scripts/**/*.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.1",
     "hono": "^4.13.13",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

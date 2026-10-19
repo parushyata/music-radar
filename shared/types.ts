@@ -15,6 +15,31 @@ export interface Me {
 export interface SourceLink {
   name: string;
   url: string;
+  /** For link-reader findings: the words on the page it came from. */
+  quote?: string;
+}
+
+/** Source names of items the link reader (an AI agent) found on artists' own pages start with this. */
+export const AI_SOURCE_PREFIX = 'AI · ';
+
+/** What the link reader stores per finding (link_findings.data). */
+export interface ReleaseFinding {
+  title: string;
+  /** YYYY, YYYY-MM or YYYY-MM-DD */
+  date: string;
+  type: 'album' | 'ep' | 'single' | 'other';
+  source_url: string;
+  quote: string;
+}
+
+export interface ShowFinding {
+  /** YYYY-MM-DD */
+  date: string;
+  city: string;
+  country: string;
+  venue: string;
+  source_url: string;
+  quote: string;
 }
 
 export interface ArtistLink {

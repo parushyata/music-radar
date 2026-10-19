@@ -1,6 +1,7 @@
 # Spec: link reader agent
 
-Status: **draft for review**. Nothing here is built yet.
+Status: **built** on the `link-reader` branch (see "Built" at the end). Not yet live: needs the migration and a deploy.
+It runs only when started by hand (`npm run link-reader`); there's no schedule.
 
 ## Problem
 
@@ -12,7 +13,7 @@ or typed in for manual artists). Reading them by hand is what this replaces.
 
 ## Goal
 
-A daily job that, for a few artists at a time, reads their pages like a person would and adds what it finds
+A command you run by hand that, for a few artists at a time, reads their pages like a person would and adds what it finds
 to their report: **upcoming releases and upcoming shows**, each with the page it came from, marked as found by AI.
 
 Not in scope (v1): news, past releases, artists with no links, Instagram/Facebook/X (they need a login).
@@ -26,7 +27,7 @@ while reading. That's the model's job; everything around it (choosing artists, c
 ## Flow
 
 ```
-your Mac, daily (launchd, like Job Radar)          Cloudflare
+your Mac, when you run it                          Cloudflare
 scripts/link-reader.ts
   1. pick artists ──────────── D1 HTTP API ──────▶ D1: artists, reports, link_checks
   2. for each artist:
@@ -87,8 +88,9 @@ A finding is dropped (and logged) if:
 - the date isn't valid or isn't after today,
 - `quote` is empty.
 
-This is the main defence against invented releases. To be confirmed while building: that `stream-json` output
-includes both the WebFetch calls and the final structured output.
+This is the main defence against invented releases. It's not proof: WebFetch has a small model summarise each page
+for the agent, so the agent never sees the raw HTML, and the quote comes from that summary.
+URLs are compared loosely (http/https, `www.`, trailing slash), because WebFetch follows redirects.
 
 ## Storage (step 4)
 
@@ -151,3 +153,20 @@ Unfollowing until nobody follows an artist deletes its findings too (same as rep
 2. Should manual artists be checked more often (they have no other source)?
 3. Later, for learning: replace `claude -p` with your own agent loop (learn-agents step 3) using a fetch tool you
    write, and compare results on the eval set.
+
+## Built
+
+- `scripts/link-reader/` — `index.ts` (selection, saving, CLI), `agent.ts` (prompt, schema, `claude -p`),
+  `checks.ts` (readable links, verification), `db.ts` (D1 HTTP API or a local SQLite file), `checks.test.ts`.
+- `migrations/0002_link_findings.sql`.
+- `server/report.ts` — `fromLinkFindings` turns findings into one more source (`AI · <site>`) for `mergeReleases` /
+  `mergeEvents`; the report's source list gets "Link reader (AI)" with the count.
+- `server/db.ts` — unfollowing (or deleting a manual artist) deletes its findings and check record once the artist row is gone.
+- Web — `SourceName` in `ui.tsx`: an AI badge, and the quote as a tooltip, on releases and shows.
+
+Changes from the draft: run by hand instead of daily (milestone 4 dropped); the stop rule for a failing artist (it's recorded as checked with a "failed" note, so it
+doesn't take a slot every day); Songkick added to the prompt; the prompt now also asks for the website's tour/news/releases pages
+(the first runs stopped at the home page) and says nobody can answer questions.
+
+Still open: milestone 5's eval set. WebFetch reads live pages, so saved HTML can't be fed to it as is;
+options are an eval of `checks.ts` + recorded agent runs, or the learn-agents loop with a fetch tool that serves saved pages.

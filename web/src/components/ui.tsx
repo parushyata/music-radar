@@ -1,6 +1,6 @@
 // Small presentational building blocks shared across views.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { Artist } from '../../../shared/types.ts';
+import { AI_SOURCE_PREFIX, type Artist, type SourceLink } from '../../../shared/types.ts';
 
 export function Avatar({ artist }: { artist: Pick<Artist, 'name' | 'image'> }) {
   return artist.image ? (
@@ -34,6 +34,19 @@ export function ExternalLink({ href, className, children }: { href: string; clas
     <a href={href} className={className} target="_blank" rel="noopener noreferrer">
       {children}
     </a>
+  );
+}
+
+/** Whether the link reader (an AI agent reading the artist's own pages) found this, rather than a music service. */
+export const isAiSource = (source: SourceLink) => source.name.startsWith(AI_SOURCE_PREFIX);
+
+/** A source's name. AI findings get a badge, and the words from the page as a tooltip so they're easy to check. */
+export function SourceName({ source }: { source: SourceLink }) {
+  if (!isAiSource(source)) return <>{source.name}</>;
+  return (
+    <span title={source.quote ? `Found by AI. The page says: “${source.quote}”` : 'Found by AI on this page'}>
+      <span className="badge ai">AI</span> {source.name.slice(AI_SOURCE_PREFIX.length)}
+    </span>
   );
 }
 
