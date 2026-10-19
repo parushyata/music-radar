@@ -8,6 +8,7 @@ const TODAY = '2026-10-19';
 const link = (url: string) => ({ label: 'x', url });
 
 test('isReadable skips social and streaming sites, keeps artist pages', () => {
+  assert.equal(isReadable(link('https://soundcloud.com/reginaspektor')), false);
   assert.equal(isReadable(link('https://www.instagram.com/ohdaughter/')), false);
   assert.equal(isReadable(link('https://open.spotify.com/artist/1')), false);
   assert.equal(isReadable(link('https://itunes.apple.com/artist/1')), false);
