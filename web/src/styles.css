@@ -134,6 +134,7 @@ code { font-size: .9em; background: var(--surface-2); padding: 1px 5px; border-r
 .chip { font: inherit; font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; }
 .chip[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
 .filters input { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 240px; }
+.filters select { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
 
 .rel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; }
 .rel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }

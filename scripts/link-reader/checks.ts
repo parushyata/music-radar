@@ -1,12 +1,6 @@
 // The link reader's rules, as plain functions with no I/O, so they're easy to test (checks.test.ts).
 import { AI_SOURCE_PREFIX, type ArtistLink, type Report, type ReleaseFinding, type ShowFinding } from '../../shared/types.ts';
 
-// Sites that need a login, or only list releases the other sources already have.
-const SKIP_DOMAINS0 = [
-  'instagram.com', 'facebook.com', 'twitter.com', 'x.com', 'tiktok.com', 'youtube.com',
-  'spotify.com', 'apple.com', 'deezer.com', 'tidal.com',
-  'discogs.com', 'wikidata.org', 'wikipedia.org', 'last.fm', 'allmusic.com',
-];
 // Sites that need a login, block automated readers (bandsintown) or need JavaScript to show anything (soundcloud),
 // or only list releases the other sources already have.
 const SKIP_DOMAINS = [
