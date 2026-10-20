@@ -1,0 +1,23 @@
+# Typecheck and test every pull request, and main after each merge.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26 # runs .ts files directly, like locally
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
