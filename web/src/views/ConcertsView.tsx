@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { EventList } from '../components/EventList.tsx';
 import { EmptyState } from '../components/ui.tsx';
 import type { ArtistState } from '../hooks.ts';
-import { WINDOWS, parseWindow, windowEnd } from '../concerts.ts';
+import { WINDOWS, parseWindow, windowEnd, windowHint } from '../concerts.ts';
 
 
 interface Props {
@@ -53,7 +53,7 @@ export function ConcertsView({ artists, hasEventSource }: Props) {
           onChange={(e) => setCustomWindow(e.target.value)}
           aria-label="Custom time window"
           aria-invalid={!!customWindow.trim() && !custom}
-          title="A number and days, weeks or months, e.g. 10 days"
+          title={windowHint(customWindow)}
         />
         <span className="muted">
           {events.length} show{events.length === 1 ? '' : 's'}

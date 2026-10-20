@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { WINDOWS, windowEnd, parseWindow } from './concerts.ts';
+import { WINDOWS, windowEnd, parseWindow, windowHint, WINDOW_HELP } from './concerts.ts';
 
 // new Date(y, m, d) is local midnight, months start at 0. Avoid new Date('2026-10-20'):
 // that's UTC midnight, which is still Oct 19 in the Americas.
@@ -70,4 +70,39 @@ test('a typed window fed into windowEnd gives the right end date', () => {
     expect(windowEnd(parseWindow('next week')!, TODAY)).toBe('2026-10-27');
     expect(windowEnd(parseWindow('a month')!, TODAY)).toBe('2026-11-20');
     expect(windowEnd(parseWindow('3 months')!, TODAY)).toBe('2027-01-20');
+});
+
+test('the window hint is the plain help text while the box is empty or holds a valid window', () => {
+    expect(windowHint('')).toBe(WINDOW_HELP);
+    expect(windowHint('   ')).toBe(WINDOW_HELP);
+    expect(windowHint('10 days')).toBe(WINDOW_HELP);
+    expect(windowHint('  Next Week  ')).toBe(WINDOW_HELP);
+    expect(windowHint('3 months')).toBe(WINDOW_HELP);
+});
+
+test('a window typed in years gets a hint with the same span in months', () => {
+    const tryMonths = (n: number) => `Years aren't supported. Try ${n} months.`;
+    expect(windowHint('next year')).toBe(tryMonths(12));
+    expect(windowHint('a year')).toBe(tryMonths(12));
+    expect(windowHint('one year')).toBe(tryMonths(12));
+    expect(windowHint('2 years')).toBe(tryMonths(24));
+    expect(windowHint('in 2 years')).toBe(tryMonths(24));
+    expect(windowHint('  2 YEARS  ')).toBe(tryMonths(24));
+});
+
+test('zero years is not turned into "Try 0 months" but reported as unreadable', () => {
+    expect(windowHint('0 years')).toBe(`Couldn't read "0 years". ${WINDOW_HELP}`);
+});
+
+test('unreadable text is quoted back trimmed, followed by the help text', () => {
+    expect(windowHint('  soon  ')).toBe(`Couldn't read "soon". ${WINDOW_HELP}`);
+    expect(windowHint('two days')).toBe(`Couldn't read "two days". ${WINDOW_HELP}`);
+    expect(windowHint('0 days')).toBe(`Couldn't read "0 days". ${WINDOW_HELP}`);
+});
+
+test('a year hint needs exactly one count, and accepts "in a year"', () => {
+    expect(windowHint('in a year')).toBe("Years aren't supported. Try 12 months.");
+    for (const text of ['years', 'year', 'in years', '1 2 years', 'a 3 years']) {
+        expect(windowHint(text)).toBe(`Couldn't read "${text}". ${WINDOW_HELP}`);
+    }
 });
