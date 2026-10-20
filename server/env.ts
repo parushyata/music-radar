@@ -1,7 +1,7 @@
 /** Cloudflare bindings (wrangler.jsonc) and secrets (`wrangler secret put`, or .dev.vars locally). */
 export interface Env {
   DB: D1Database;
-  /** Comma-separated emails allowed to sign in; empty = anyone with a Google account. */
+  /** Comma-separated emails allowed to sign in with Google; empty or unset = nobody. */
   ALLOWED_EMAILS?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;

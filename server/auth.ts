@@ -19,7 +19,7 @@ async function sha256(text: string): Promise<string> {
   return base64url(new Uint8Array(digest));
 }
 
-function emailAllowed(env: Env, email: string): boolean {
+export function emailAllowed(env: Env, email: string): boolean {
   const allowed = (env.ALLOWED_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
   return allowed.includes(email.toLowerCase());
 }
