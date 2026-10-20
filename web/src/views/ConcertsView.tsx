@@ -2,22 +2,8 @@ import { useState } from 'react';
 import { EventList } from '../components/EventList.tsx';
 import { EmptyState } from '../components/ui.tsx';
 import type { ArtistState } from '../hooks.ts';
+import { WINDOWS, windowEnd } from '../concerts.ts';
 
-const WINDOWS = [
-  { label: 'Any time', days: 0, months: 0 },
-  { label: '3 weeks', days: 21, months: 0 },
-  { label: '6 weeks', days: 42, months: 0 },
-  { label: '3 months', days: 0, months: 3 },
-  { label: '6 months', days: 0, months: 6 },
-];
-
-function windowEnd({ days, months }: (typeof WINDOWS)[number]): string | null {
-  if (!days && !months) return null;
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  d.setMonth(d.getMonth() + months);
-  return d.toLocaleDateString('en-CA'); // en-CA formats as 2026-12-01
-}
 
 interface Props {
   artists: ArtistState[];
@@ -38,7 +24,7 @@ export function ConcertsView({ artists, hasEventSource }: Props) {
   }
 
   const q = query.toLowerCase().trim();
-  const end = windowEnd(WINDOWS[windowIndex]);
+  const end = windowEnd(WINDOWS[windowIndex], new Date());
   const events = artists
     .flatMap((s) => (s.report?.events ?? []).map((event) => ({ event, artistName: s.artist.name })))
     .filter(({ event: e, artistName }) =>

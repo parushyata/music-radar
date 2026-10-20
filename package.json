@@ -15,7 +15,8 @@
     "deploy": "npm run build && wrangler deploy",
     "import-local": "node scripts/export-local.ts",
     "link-reader": "node scripts/link-reader/index.ts",
-    "test": "node --test scripts/**/*.test.ts"
+    "test": "vitest run && node --test scripts/**/*.test.ts",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.1",
@@ -32,6 +33,7 @@
     "concurrently": "^10.0.5",
     "typescript": "^7.0.2",
     "vite": "^8.3.3",
+    "vitest": "^5.0.5",
     "wrangler": "^4.150.0"
   }
 }
