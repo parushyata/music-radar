@@ -137,6 +137,7 @@ code { font-size: .9em; background: var(--surface-2); padding: 1px 5px; border-r
 .filters select { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
 .filters .window-input { min-width: 180px; }
 .filters input[aria-invalid="true"] { border-color: var(--accent); }
+.filters .window-hint { flex-basis: 100%; margin: 0; color: var(--accent); }
 
 .rel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; }
 .rel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }

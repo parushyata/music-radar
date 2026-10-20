@@ -27,6 +27,7 @@ export function ConcertsView({ artists, hasEventSource }: Props) {
   const q = query.toLowerCase().trim();
   // A typed window that parses wins over the dropdown.
   const custom = parseWindow(customWindow);
+  const windowInvalid = !!customWindow.trim() && !custom;
   const end = windowEnd(custom ?? WINDOWS[windowIndex], new Date());
   const events = artists
     .flatMap((s) => (s.report?.events ?? []).map((event) => ({ event, artistName: s.artist.name })))
@@ -52,12 +53,19 @@ export function ConcertsView({ artists, hasEventSource }: Props) {
           value={customWindow}
           onChange={(e) => setCustomWindow(e.target.value)}
           aria-label="Custom time window"
-          aria-invalid={!!customWindow.trim() && !custom}
+          aria-invalid={windowInvalid}
+          aria-describedby={windowInvalid ? 'window-hint' : undefined}
           title={windowHint(customWindow)}
         />
         <span className="muted">
           {events.length} show{events.length === 1 ? '' : 's'}
         </span>
+        {/* Shown as text, not only the title tooltip, so phone users see it too. */}
+        {windowInvalid && (
+          <p id="window-hint" className="window-hint small" role="status">
+            {windowHint(customWindow)}
+          </p>
+        )}
       </div>
       {events.length ? (
         <EventList items={events} />
