@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { EventList } from '../components/EventList.tsx';
 import { EmptyState } from '../components/ui.tsx';
 import type { ArtistState } from '../hooks.ts';
-import { WINDOWS, windowEnd } from '../concerts.ts';
+import { WINDOWS, parseWindow, windowEnd, windowHint } from '../concerts.ts';
 
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
 export function ConcertsView({ artists, hasEventSource }: Props) {
   const [query, setQuery] = useState('');
   const [windowIndex, setWindowIndex] = useState(0);
+  const [customWindow, setCustomWindow] = useState('');
 
   if (!hasEventSource) {
     return (
@@ -24,7 +25,10 @@ export function ConcertsView({ artists, hasEventSource }: Props) {
   }
 
   const q = query.toLowerCase().trim();
-  const end = windowEnd(WINDOWS[windowIndex], new Date());
+  // A typed window that parses wins over the dropdown.
+  const custom = parseWindow(customWindow);
+  const windowInvalid = !!customWindow.trim() && !custom;
+  const end = windowEnd(custom ?? WINDOWS[windowIndex], new Date());
   const events = artists
     .flatMap((s) => (s.report?.events ?? []).map((event) => ({ event, artistName: s.artist.name })))
     .filter(({ event: e, artistName }) =>
@@ -36,16 +40,32 @@ export function ConcertsView({ artists, hasEventSource }: Props) {
     <>
       <div className="filters">
         <input type="search" placeholder="Filter by city, country, venue or artist" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <select value={windowIndex} onChange={(e) => setWindowIndex(Number(e.target.value))}>
+        <select value={windowIndex} onChange={(e) => setWindowIndex(Number(e.target.value))} disabled={!!custom}>
           {WINDOWS.map((w, i) => (
             <option key={w.label} value={i}>
               {w.label}
             </option>
           ))}
         </select>
+        <input
+          className="window-input"
+          placeholder="or type: 2 days, next week"
+          value={customWindow}
+          onChange={(e) => setCustomWindow(e.target.value)}
+          aria-label="Custom time window"
+          aria-invalid={windowInvalid}
+          aria-describedby={windowInvalid ? 'window-hint' : undefined}
+          title={windowHint(customWindow)}
+        />
         <span className="muted">
           {events.length} show{events.length === 1 ? '' : 's'}
         </span>
+        {/* Shown as text, not only the title tooltip, so phone users see it too. */}
+        {windowInvalid && (
+          <p id="window-hint" className="window-hint small" role="status">
+            {windowHint(customWindow)}
+          </p>
+        )}
       </div>
       {events.length ? (
         <EventList items={events} />
