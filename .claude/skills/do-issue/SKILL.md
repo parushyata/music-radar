@@ -49,7 +49,7 @@ Read the code it concerns before deciding. Then exactly one of:
 ## 5. Test
 
 - Run the `test-writer` agent on the uncommitted changes.
-- Then `npm run typecheck` and `npm test`. Both must pass. If you can't get them green, stop: leave the branch as it is, and report what fails.
+- Then `npm run typecheck`, `npm test` and `npm run test:e2e`. All must pass. If you can't get them green, stop: leave the branch as it is, and report what fails.
 - If the test-writer reports a bug in existing code that the item didn't ask about, don't fix it. Put it in the PR description, and suggest a new line for the file in your report.
 
 ## 6. Open the PR
