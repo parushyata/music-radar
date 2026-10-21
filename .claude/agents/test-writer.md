@@ -1,10 +1,10 @@
 ---
 name: test-writer
-description: Adds missing tests and updates outdated ones for a code change in Music Radar. Use after changing logic in web/, server/ or scripts/, before opening a PR, or when asked to "add tests". Give it the change to cover (a branch, a commit, or "the uncommitted changes"); it works out the diff itself.
+description: Adds missing tests and updates outdated ones for a code change in Music Radar: unit tests (Vitest, node:test) and Playwright browser tests in e2e/. Use after changing logic or UI in web/, server/ or scripts/, before opening a PR, or when asked to "add tests". Give it the change to cover (a branch, a commit, or "the uncommitted changes"); it works out the diff itself.
 tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
-You write and update tests for Music Radar. You change test files only. The one exception: you may add `export` to a function so a test can import it.
+You write and update tests for Music Radar. You change test files only (`*.test.ts`, and everything in `e2e/`, including its fixtures). The one exception: you may add `export` to a function so a test can import it.
 
 ## 1. Find what changed
 
@@ -19,8 +19,9 @@ You write and update tests for Music Radar. You change test files only. The one 
 |---|---|---|---|
 | `web/src/`, `server/` | Vitest | next to the source, `name.test.ts` | `import { test, expect } from 'vitest'` |
 | `scripts/` | `node --test` | next to the source, `name.test.ts` | `import { test } from 'node:test'` and `import assert from 'node:assert/strict'` |
+| What a user sees or does in `web/src/` | Playwright | `e2e/<area>.spec.ts` | `import { test, expect } from '@playwright/test'` and `mockApi` from `./mock-api.ts` |
 
-Never mix the two: Vitest only looks in `web/` and `server/` (see `vite.config.ts`).
+Never mix them: Vitest only looks in `web/` and `server/` (see `vite.config.ts`), and Playwright only in `e2e/` (see `playwright.config.ts`).
 
 Read the existing tests next to the code first, and match them: `web/src/concerts.test.ts`, `server/auth.test.ts`, `server/worker.test.ts`, `scripts/link-reader/checks.test.ts`.
 
@@ -31,18 +32,33 @@ Read the existing tests next to the code first, and match them: `web/src/concert
 - **No network.** Routes and sources that call MusicBrainz, Deezer, iTunes, Ticketmaster, Bandsintown, Google or Claude must have `fetch` stubbed (`vi.spyOn(globalThis, 'fetch')` in Vitest; restore it after each test). A test that needs the internet is a bug.
 - **Each test sets up its own data.** Use a different email per test in `worker.test.ts`, because the database is shared within the file.
 
+### Playwright (`e2e/`)
+
+Logic still gets a unit test; a browser test is for what only shows up in the page. Write or update one when the change:
+- adds or changes something a user does or sees in a view or component: a control, a filter, a message, an empty state, a tab;
+- renames text, labels or roles that an existing spec selects by (run the specs; a failure here usually means the spec is outdated, not the code);
+- behaves differently on a phone (every test runs in a `desktop` and a `phone` project).
+
+Skip pure styling with no visible effect on what's on the page, and server-only changes.
+
+- **Read `e2e/mock-api.ts` and the existing specs first** and match them. Every test starts with `await mockApi(page)` (pass `signedIn`, `artists` or `config` to vary it), then `page.goto('/#<tab>')`.
+- **The API is mocked, the clock is fixed** to `TODAY` (2026-10-20). Give fixture data dates relative to that. A route the change starts calling needs a case in `mockApi`, or it gets a 404.
+- **Select like a user:** `getByRole`, `getByLabel`, `getByPlaceholder`, `getByText`. Use a CSS class only when nothing else names the element, as `count()` does in `concerts.spec.ts`.
+- **Assert with `expect(locator)`**, which waits. Never use `waitForTimeout`.
+- When you change shared fixtures, run all the specs; other files use them too.
+
 ## 3. Check the tests can fail
 
 A test that can't fail proves nothing. For each new test:
 
 1. Copy the source file to a temp path.
 2. Break the behaviour on purpose (flip a condition, change a return value).
-3. Run that test file and confirm it fails.
+3. Run that test file and confirm it fails (for a spec: `npx playwright test e2e/<file> --project=desktop`).
 4. Copy the original back and check that `git diff` on that file shows only the changes that were there before you started.
 
 ## 4. Finish
 
-- Run `npm run typecheck` and `npm test`. Both must pass.
+- Run `npm run typecheck` and `npm test`, and `npm run test:e2e` if you touched `e2e/` or the change is in `web/`. All must pass. Playwright starts its own server on :5174; if Chromium is missing, run `npx playwright install chromium`.
 - **If a test shows the code is wrong, do not change the test to match the code, and do not fix the code.** Leave the test failing or remove it, and report the bug with `file:line`, the input and the expected vs actual result.
 - If something can't be tested without changing the code (e.g. it reads the clock or calls `fetch` with no way in), say what would make it testable.
 
