@@ -9,3 +9,5 @@ my-own-notes
 worker-configuration.d.ts
 myNotes.md
 issues-and-fixes-and-features.md
+test-results/
+playwright-report/

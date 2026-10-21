@@ -69,6 +69,15 @@ curl "http://localhost:8787/cdn-cgi/local/scheduled"   # run the background refr
 npm test                          # unit tests (scripts/)
 ```
 
+**Browser tests** (Playwright, in `e2e/`) run the app in Chromium at desktop and phone size, against a
+Vite server on :5174 that Playwright starts. The API is mocked with fixtures (`e2e/mock-api.ts`) and the
+clock is fixed, so no worker, database or keys are needed.
+
+```sh
+npx playwright install chromium   # once
+npm run test:e2e                  # add --ui to watch them run, --headed to see the browser
+```
+
 ## Link reader (AI agent)
 
 Many artists have nothing upcoming in Deezer, Apple Music or Ticketmaster, but their own pages do

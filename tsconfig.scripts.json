@@ -8,6 +8,8 @@
   },
   "include": [
     "scripts",
-    "shared"
+    "shared",
+    "e2e",
+    "playwright.config.ts"
   ]
 }

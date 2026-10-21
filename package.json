@@ -16,7 +16,8 @@
     "import-local": "node scripts/export-local.ts",
     "link-reader": "node scripts/link-reader/index.ts",
     "test": "vitest run && node --test scripts/**/*.test.ts",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.1",
@@ -26,6 +27,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
