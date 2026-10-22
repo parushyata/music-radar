@@ -24,6 +24,10 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --user 1001   # Playwright's docs recommend this for GitHub Actions
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -31,7 +35,7 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
