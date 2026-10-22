@@ -39,7 +39,8 @@ export function ArtistSearch({
     mutationFn: (c: ArtistCandidate) => api.follow(c.mbid),
     onSuccess: async ({ artist, existed }) => {
       await qc.invalidateQueries({ queryKey: queryKeys.artists });
-      if (!existed) await refreshInto(qc, artist.id).catch(() => {});
+      // Don't wait for the sources (several seconds): the card shows "Checking sources…" until the report arrives.
+      if (!existed) void refreshInto(qc, artist.id).catch(() => {});
     },
     onError: (e, c) => alert(`Could not add ${c.name}: ${e.message}`),
   });

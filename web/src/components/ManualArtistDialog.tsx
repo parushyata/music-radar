@@ -21,8 +21,9 @@ export function ManualArtistDialog({ target, onClose }: { target: ManualDialogTa
       editing ? { artist: await api.updateManual(editing.id, input), existed: false } : api.addManual(input),
     onSuccess: async ({ artist, existed }) => {
       await qc.invalidateQueries({ queryKey: queryKeys.artists });
-      // New, or edited (which drops the old report): fetch its releases, shows and news now.
-      if (!existed) await refreshInto(qc, artist.id).catch(() => {});
+      // New, or edited (which drops the old report): fetch its releases, shows and news now,
+      // without waiting for it; the card shows "Checking sources…" until the report arrives.
+      if (!existed) void refreshInto(qc, artist.id).catch(() => {});
     },
   });
 

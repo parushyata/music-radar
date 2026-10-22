@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import type { ArtistWithReport, ConfigStatus, Me, ShowEvent } from '../shared/types.ts';
+import type { ArtistCandidate, ArtistWithReport, ConfigStatus, Me, Report, ShowEvent } from '../shared/types.ts';
 
 // Every test runs on this day, so "2 days" or "next week" always mean the same dates.
 export const TODAY = new Date('2026-10-20T12:00:00Z');
@@ -27,21 +27,72 @@ export const ARTISTS: ArtistWithReport[] = [
   },
 ];
 
+/** What GET /api/search answers, whatever the query. */
+export const CANDIDATES: ArtistCandidate[] = [
+  { mbid: 'mbid-new', name: 'New Band', disambiguation: 'search fixture', country: 'IS', type: 'Group', score: 100, aliases: [], tags: ['indie'] },
+];
+
 interface Options {
   signedIn?: boolean;
   artists?: ArtistWithReport[];
   config?: ConfigStatus;
+  candidates?: ArtistCandidate[];
+  /** Keep POST /api/artists/:id/refresh open until the test calls `releaseRefresh()`. */
+  holdRefresh?: boolean;
 }
 
-/** Fixes the clock and answers /api/* from fixtures instead of the real worker. */
-export async function mockApi(page: Page, { signedIn = true, artists = ARTISTS, config = { ticketmaster: true, bandsintown: false } }: Options = {}) {
+/**
+ * Fixes the clock and answers /api/* from fixtures instead of the real worker. Adding an artist
+ * (search pick or manual) puts it in this page's list without a report; refreshing gives it one.
+ */
+export async function mockApi(
+  page: Page,
+  { signedIn = true, artists = ARTISTS, config = { ticketmaster: true, bandsintown: false }, candidates = CANDIDATES, holdRefresh = false }: Options = {},
+) {
+  const list = structuredClone(artists);
+  let releaseRefresh = () => {};
+  const refreshGate = holdRefresh ? new Promise<void>((resolve) => (releaseRefresh = resolve)) : Promise.resolve();
+
   await page.clock.setFixedTime(TODAY);
-  await page.route('**/api/**', (route) => {
+  await page.route('**/api/**', async (route) => {
     if (!signedIn) return route.fulfill({ status: 401, json: { error: 'Not signed in' } });
-    const path = new URL(route.request().url()).pathname;
+    const req = route.request();
+    const path = new URL(req.url()).pathname;
+    const post = req.method() === 'POST';
     if (path === '/api/me') return route.fulfill({ json: ME });
     if (path === '/api/config') return route.fulfill({ json: config });
-    if (path === '/api/artists') return route.fulfill({ json: artists });
+    if (path === '/api/search') return route.fulfill({ json: candidates });
+    if (path === '/api/artists' && post) {
+      const { mbid } = req.postDataJSON() as { mbid: string };
+      const known = list.find((a) => a.mbid === mbid);
+      if (known) return route.fulfill({ json: { artist: known, existed: true } });
+      const c = candidates.find((x) => x.mbid === mbid)!;
+      const artist = {
+        id: `id-${mbid}`, mbid, name: c.name, disambiguation: c.disambiguation, country: c.country, type: c.type,
+        deezerId: null, itunesId: null, image: null, links: [], addedAt: TODAY.toISOString(),
+      };
+      list.push({ ...artist, report: null });
+      return route.fulfill({ json: { artist, existed: false } });
+    }
+    if (path === '/api/artists') return route.fulfill({ json: list });
+    if (path === '/api/manual-artists' && post) {
+      const input = req.postDataJSON() as { name: string; disambiguation?: string };
+      const artist = {
+        id: `manual-${list.length}`, mbid: null, name: input.name, disambiguation: input.disambiguation ?? '', country: '', type: '',
+        deezerId: 1, itunesId: null, image: null, links: [], addedAt: TODAY.toISOString(),
+      };
+      list.push({ ...artist, report: null });
+      return route.fulfill({ json: { artist, existed: false } });
+    }
+    const refresh = path.match(/^\/api\/artists\/([^/]+)\/refresh$/);
+    if (refresh && post) {
+      await refreshGate;
+      const report: Report = { artistId: refresh[1], fetchedAt: TODAY.getTime(), releases: [], events: [], news: [], sources: [] };
+      const a = list.find((x) => x.id === refresh[1]);
+      if (a) a.report = report;
+      return route.fulfill({ json: report });
+    }
     return route.fulfill({ status: 404, json: { error: `No mock for ${path}` } });
   });
+  return { releaseRefresh: () => releaseRefresh() };
 }
