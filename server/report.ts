@@ -94,15 +94,26 @@ export function fromLinkFindings(rows: LinkFindingRow[]): { releases: RawRelease
 interface Settled<T> {
   status: SourceStatus;
   data: T[];
+  /** How long the source took, for the log line (not stored in the report). */
+  ms: number;
 }
 
 async function settle<T>(name: string, fn: () => Promise<T[]>): Promise<Settled<T>> {
+  const start = Date.now();
   try {
     const data = await fn();
-    return { status: { name, ok: true, count: data.length }, data };
+    return { status: { name, ok: true, count: data.length }, data, ms: Date.now() - start };
   } catch (e) {
-    return { status: { name, ok: false, error: (e as Error).message }, data: [] };
+    return { status: { name, ok: false, error: (e as Error).message }, data: [], ms: Date.now() - start };
   }
+}
+
+/** One log line per report, slowest source first: `report "Muse" 7310ms: Google News failed 6900ms (HTTP 503 …), …`. */
+export function timingLine(artistName: string, totalMs: number, sources: { status: SourceStatus; ms: number }[]): string {
+  const parts = [...sources]
+    .sort((a, b) => b.ms - a.ms)
+    .map(({ status: s, ms }) => `${s.name} ${s.ok ? 'ok' : 'failed'} ${ms}ms${s.ok ? '' : ` (${s.error})`}`);
+  return `report "${artistName}" ${totalMs}ms: ${parts.join(', ')}`;
 }
 
 /** Stored reports are trimmed so a page with hundreds of artists stays small (see followedListJson). */
@@ -115,6 +126,7 @@ export const tableFor = (artist: FollowedArtist): ReportTable => (artist.mbid ==
 export async function buildReport(env: Env, artist: FollowedArtist): Promise<Report> {
   const tm = env.TICKETMASTER_API_KEY;
   const bit = env.BANDSINTOWN_APP_ID;
+  const start = Date.now();
   const [mb, deezer, apple, tmEvents, bitEvents, news, findingRows] = await Promise.all([
     // Manual artists aren't on MusicBrainz; their releases come from Deezer and Apple Music only.
     artist.mbid !== null ? settle('MusicBrainz', () => recentReleases(artist)) : null,
@@ -128,6 +140,8 @@ export async function buildReport(env: Env, artist: FollowedArtist): Promise<Rep
   const found = fromLinkFindings(findingRows);
   const eventSources = [tmEvents, bitEvents].filter((x) => x !== null);
   const all: Settled<unknown>[] = [...(mb ? [mb] : []), deezer, apple, ...eventSources, news];
+  // Visible in `npx wrangler tail` and the dashboard's Workers Logs: which source makes a refresh slow.
+  console.log(timingLine(artist.name, Date.now() - start, all));
 
   const releases = mergeReleases([...(mb?.data ?? []), ...deezer.data, ...apple.data, ...found.releases]);
   const report: Report = {

@@ -38,11 +38,13 @@ interface MbReleaseGroup {
 let nextSlot = 0;
 const SPACING_MS = 1100;
 
-async function waitForSlot(): Promise<void> {
+/** Returns how long it waited, so callers can log time lost queueing behind other MusicBrainz calls. */
+async function waitForSlot(): Promise<number> {
   const now = Date.now();
   const slot = Math.max(now, nextSlot);
   nextSlot = slot + SPACING_MS;
   if (slot > now) await sleep(slot - now);
+  return slot - now;
 }
 
 async function mb<T>(endpoint: string, params: Record<string, string | number>): Promise<T> {
@@ -50,12 +52,14 @@ async function mb<T>(endpoint: string, params: Record<string, string | number>):
   for (const [k, v] of Object.entries({ ...params, fmt: 'json' })) url.searchParams.set(k, String(v));
 
   for (let attempt = 0; ; attempt++) {
-    await waitForSlot();
+    const waited = await waitForSlot();
+    if (waited > 0) console.log(`MusicBrainz ${endpoint}: waited ${waited}ms for a slot`);
     try {
       return await fetchJSON<T>(url);
     } catch (e) {
       // 503 = MusicBrainz is throttling; back off and retry a few times.
       if (e instanceof HttpError && e.status === 503 && attempt < 3) {
+        console.warn(`MusicBrainz ${endpoint}: 503, retry ${attempt + 1} of 3 in ${1500 * (attempt + 1)}ms`);
         await sleep(1500 * (attempt + 1));
         continue;
       }
