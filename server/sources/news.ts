@@ -7,11 +7,15 @@ import type { FollowedArtist, NewsItem } from '../../shared/types.ts';
 const MUSIC_WORDS =
   /\b(albums?|LP|EP|singles?|songs?|tracks?|tours?|touring|concerts?|gigs?|shows?|festivals?|tickets?|presale|tour dates|headlin\w*|lineup|line-up|releases?|released|new music|music video|recording|studio|perform\w*|setlist|residency|live|reunion|remix|deluxe|Grammys?)\b/i;
 
+// Google News often refuses Workers' shared IPs, holding the request ~6 s before a 503. A refresh waits
+// for its slowest source, so give up early rather than let news set the pace.
+const NEWS_TIMEOUT_MS = 3_000;
+
 export async function newsFor(artist: FollowedArtist): Promise<NewsItem[]> {
   const q = `"${artist.name}" (album OR tour OR concert OR single OR announces OR festival) when:60d`;
   const xml = await fetchText(
     `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`,
-    { headers: { Accept: 'application/rss+xml' } },
+    { headers: { Accept: 'application/rss+xml' }, timeoutMs: NEWS_TIMEOUT_MS },
   );
 
   const items: NewsItem[] = [];
